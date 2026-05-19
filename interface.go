@@ -14,13 +14,6 @@ func resolveInterface[T any](val reflect.Value) (T, bool) {
 		}
 	}
 
-	if val.Kind() == reflect.Ptr && !val.IsNil() {
-		elem := val.Elem()
-		if inst, ok := elem.Interface().(T); ok {
-			return inst, true
-		}
-	}
-
 	return zero, false
 }
 
@@ -33,12 +26,7 @@ func (g *Validate) validateInterfaceHooks(val any, path string) *Error {
 			if err.Path == "" {
 				err.Path = path
 			}
-			return &Error{
-				ErrType: err.ErrType,
-				Message: err.Message,
-				Path:    err.Path,
-				err:     err,
-			}
+			return err
 		}
 	}
 

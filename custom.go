@@ -56,8 +56,13 @@ func (g *Validate) validateWithCustomTag(val any, f reflect.StructField, path st
 	}
 
 	t := f.Type
+	actualVal := val
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
+		// Dereference the value so validators registered for T receive T, not *T.
+		if rv := reflect.ValueOf(val); rv.IsValid() && rv.Kind() == reflect.Ptr && !rv.IsNil() {
+			actualVal = rv.Elem().Interface()
+		}
 	}
 
 	tags := strings.Split(tag, ",")
@@ -68,7 +73,7 @@ func (g *Validate) validateWithCustomTag(val any, f reflect.StructField, path st
 		}
 
 		if fn, ok := getCustomValidator(t, singleTag); ok {
-			err := fn(val, path)
+			err := fn(actualVal, path)
 			if err != nil {
 				if err.Path == "" {
 					err.Path = path
@@ -79,4 +84,11 @@ func (g *Validate) validateWithCustomTag(val any, f reflect.StructField, path st
 	}
 
 	return nil
+}
+
+// ClearCustomValidators removes all registered custom validators. Useful for test isolation.
+func ClearCustomValidators() {
+	customValidatorMux.Lock()
+	defer customValidatorMux.Unlock()
+	customValidators = make(map[reflect.Type]map[string]customValidatorFunc)
 }

@@ -41,23 +41,19 @@ func (g *Validate) inspect(val interface{}, tree string, i int, f reflect.Struct
 
 	v := getValueOf(val)
 
-	if _, ok := v.Interface().(*time.Time); ok {
-		return nil
-	}
 	switch {
 	case isPtr(v):
 		return g.inspect(v.Elem().Interface(), tree, i, f, enumMap)
+	case isTime(v):
+		return g.checkTime(v, tree)
 	case isStruct(v):
 		return g.checkStruct(val, v, tree, enumMap)
 	case isString(v):
 		return g.checkString(v, tree, i, f)
-	case isTime(v):
-		return g.checkTime(v, tree)
 	case isList(v):
 		return g.checkList(v, tree, enumMap)
 	default:
 		return nil
-
 	}
 }
 
@@ -117,15 +113,14 @@ func (g *Validate) formatValidation(f reflect.StructField, v reflect.Value, tree
 	}
 	fieldValue := v.String()
 	formatRegex := getFormatRegex(tag)
-	if matchRegexPattern(formatRegex, fieldValue, f, tree) != nil {
+	if err := matchRegexPattern(formatRegex, fieldValue, f, tree); err != nil {
 		return &Error{
 			ErrType: fmt.Sprintf("INVALID_%s_ERR", strings.ToUpper(tag)),
 			Path:    fieldName(f, tree),
 			Message: fmt.Sprintf("error on field <%s>. the given value '%s' is not a valid %s", fieldName(f, tree), fieldValue, tag),
 		}
 	}
-
-	return matchRegexPattern(formatRegex, fieldValue, f, tree)
+	return nil
 }
 
 func matchRegexPattern(regexpPattern, fieldValue string, f reflect.StructField, tree string) error {
@@ -193,7 +188,7 @@ func (g *Validate) checkString(v reflect.Value, tree string, _ int, f reflect.St
 
 func (g *Validate) checkList(v reflect.Value, tree string, enumMap map[string]string) error {
 	min := 1
-	if g.IgnoreMinLen == true {
+	if g.IgnoreMinLen {
 		min = 0
 	}
 	isLesserThanMinLength := v.Len() < min
@@ -207,22 +202,18 @@ func (g *Validate) checkList(v reflect.Value, tree string, enumMap map[string]st
 	}
 	for i := 0; i < v.Len(); i++ {
 		elem := v.Index(i)
-		err := g.inspect(elem.Interface(), tree, i, reflect.StructField{}, enumMap)
+		elemPath := fmt.Sprintf("%s[%d]", tree, i)
+		err := g.inspect(elem.Interface(), elemPath, i, reflect.StructField{}, enumMap)
 		if err != nil {
 			return err
 		}
 		if cv, ok := resolveInterface[ValidationPlugin](elem); ok {
 			if err := cv.Validate(); err != nil {
-				return &Error{
-					ErrType: err.ErrType,
-					Message: err.Message,
-					Path:    err.Path,
-					err:     err,
-				}
+				return err
 			}
 		}
 		if df, ok := resolveInterface[DynamicFieldsValidator](elem); ok {
-			if err := validateDynamicFields(df.GetValue(), df.GetAttribute(), df.GetValueType(), tree); err != nil {
+			if err := validateDynamicFields(df.GetValue(), df.GetAttribute(), df.GetValueType(), elemPath); err != nil {
 				return err
 			}
 		}
@@ -239,7 +230,13 @@ func (g *Validate) checkStruct(val interface{}, v reflect.Value, tree string, en
 
 	for i := 0; i < t.NumField(); i++ {
 		if isTime(v.Field(i)) {
-			// ignore time.Time fields, they are already checked in bindJSON
+			f := t.Field(i)
+			// Only reject a zero time if the field is explicitly required.
+			if isFieldRequired(f) {
+				if err := g.checkTime(v.Field(i), fieldName(f, tree)); err != nil {
+					return err
+				}
+			}
 			continue
 		}
 
@@ -277,6 +274,19 @@ func (g *Validate) checkField(val interface{}, v reflect.Value, t reflect.Type, 
 
 	switch {
 
+	case f.Type.Kind() == reflect.Slice || f.Type.Kind() == reflect.Array:
+		// Empty slice: fail only when the field is required.
+		if valField.Len() == 0 {
+			if !g.IgnoreRequired && isFieldRequired(f) {
+				return RequiredFieldError(f, tree)
+			}
+			break
+		}
+		// Non-empty: recurse into elements — this was the missing step for plain (non-pointer) slice fields.
+		if err := g.checkList(valField, fieldName(f, tree), enumMap); err != nil {
+			return err
+		}
+
 	case f.Type.Kind() == reflect.Ptr && !valField.IsNil():
 		// Handle pointer fields
 		if err := g.inspect(valField.Interface(), fieldName(f, tree), i, f, enumMap); err != nil {
@@ -288,23 +298,22 @@ func (g *Validate) checkField(val interface{}, v reflect.Value, t reflect.Type, 
 			return err
 		}
 	case f.Type.Kind() != reflect.Ptr:
-		if !g.IgnoreRequired && isFieldRequired(f) && reflect.DeepEqual(valField.Interface(), reflect.Zero(f.Type).Interface()) {
+		isZero := reflect.DeepEqual(valField.Interface(), reflect.Zero(f.Type).Interface())
+		if !g.IgnoreRequired && isFieldRequired(f) && isZero {
 			return RequiredFieldError(f, tree)
+		}
+		// Whitespace-only required strings must also be rejected, consistent with *string behaviour.
+		if !g.IgnoreRequired && f.Type.Kind() == reflect.String && isFieldRequired(f) && !isZero {
+			if err := g.checkString(valField, fieldName(f, tree), i, f); err != nil {
+				return err
+			}
 		}
 	case !g.IgnoreRequired:
 		if isFieldRequired(f) {
 			if f.Type.Kind() == reflect.Ptr && valField.IsNil() {
 				return RequiredFieldError(f, tree)
 			}
-
 		}
-
-	case isPtr(v):
-		if !v.IsValid() || v.IsNil() {
-			return nil // nil pointer is valid
-		}
-		return g.inspect(v.Elem().Interface(), tree, i, v.Type().Field(i), enumMap)
-
 	}
 	if err := g.validateCondition(f, valField, tree, enumMap); err != nil {
 		return err
@@ -340,12 +349,7 @@ func (g *Validate) checkField(val interface{}, v reflect.Value, t reflect.Type, 
 	}
 	if cv, ok := resolveInterface[ValidationPlugin](valField); ok {
 		if err := cv.Validate(); err != nil {
-			return &Error{
-				ErrType: err.ErrType,
-				Message: err.Message,
-				Path:    err.Path,
-				err:     err,
-			}
+			return err
 		}
 	}
 

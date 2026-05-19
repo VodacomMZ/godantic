@@ -46,8 +46,9 @@ func extractEnumValues(rootVal reflect.Value, parentPath string) map[string]stri
 				fullPath = current.path + "." + jsonKey
 			}
 
-			// Verificar se o campo possui a tag "enum"
-			if _, ok := field.Tag.Lookup("enum"); ok && fieldValue.Kind() == reflect.String {
+			// Collect all string fields so that `when` conditions can reference any string field,
+			// not only fields that carry an `enum` tag.
+			if fieldValue.Kind() == reflect.String {
 				enumMap[fullPath] = fieldValue.String()
 			}
 
@@ -61,14 +62,6 @@ func extractEnumValues(rootVal reflect.Value, parentPath string) map[string]stri
 		}
 	}
 	return enumMap
-}
-
-// Exemplo de uso
-type Config struct {
-	Mode   *string `json:"mode" enum:"true"`
-	Nested struct {
-		Status string `json:"status" enum:"true"`
-	} `json:"nested"`
 }
 
 func parseCondition(conditionTag string) (map[string]string, map[string]string) {

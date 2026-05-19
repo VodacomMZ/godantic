@@ -3,7 +3,6 @@ package godantic
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 )
@@ -23,7 +22,6 @@ func decodeError(err error) error {
 			Path:    e.Error(),
 			Message: e.Error(),
 		}
-	//	This solution does not follow the godantic validation standards
 	case *time.ParseError:
 		return &Error{
 			ErrType: "INVALID_TIME_ERR",
@@ -65,20 +63,13 @@ func (g *Validate) BindJSON(jsonData []byte, obj any) error {
 			Message: "The given json data is empty",
 		}
 	}
-	var refDataMap map[string]any
-	refDataBytes, _ := json.Marshal(obj)
-	_ = json.Unmarshal(refDataBytes, &refDataMap)
 
-	err = decodeJSON(jsonData, obj)
-	if err != nil {
-		return err
-	}
 	err = g.InspectStruct(obj)
 	if err != nil {
 		return err
 	}
 
-	err = g.CheckTypeCompatibility(buildRefData(obj), refDataMap)
+	err = g.CheckTypeCompatibility(reqDataMap, buildRefData(obj))
 	if err != nil {
 		return err
 	}
@@ -87,25 +78,14 @@ func (g *Validate) BindJSON(jsonData []byte, obj any) error {
 }
 
 func (e *Error) Error() string {
-	e.err = errors.New(e.Message)
-	return e.err.Error()
+	return e.Message
 }
 
 type Error struct {
 	ErrType string
 	Message string
 	Path    string
-	err     error
 }
 
-type CustomErr struct {
-	ErrType string
-	Message string
-	Path    string
-	err     error
-}
-
-func (e *CustomErr) Error() string {
-	e.err = errors.New(e.Message)
-	return e.err.Error()
-}
+// CustomErr is a type alias for Error, kept for API compatibility with ValidationPlugin implementations.
+type CustomErr = Error

@@ -19,14 +19,16 @@ func (g *Validate) CheckTypeCompatibility(reqData, refData map[string]any) error
 
 func (g *Validate) typeCheck(reqData, refData map[string]any, currentPath string) error {
 	for reqField := range reqData {
-
 		if err := g.validateExtra(refData, reqField, currentPath); err != nil {
 			return err
 		}
 
 		fType := refData[reqField]
-
-		if err := g.validateField(fType, reqData[reqField], reqField); err != nil {
+		fieldPath := reqField
+		if currentPath != "" {
+			fieldPath = currentPath + "." + reqField
+		}
+		if err := g.validateField(fType, reqData[reqField], fieldPath); err != nil {
 			return err
 		}
 	}
@@ -51,18 +53,6 @@ func (g *Validate) validateExtra(refData map[string]any, reqField, currentPath s
 		return err
 	}
 
-	return nil
-}
-
-func (g *Validate) validateObject(fieldType any, reqData map[string]any, reqField, path string) error {
-	fieldObjectType, isFieldTypeObject := fieldType.(map[string]any)
-	bodyObjectValue, _ := reqData[reqField].(map[string]any)
-	if isFieldTypeObject {
-		result := g.typeCheck(bodyObjectValue, fieldObjectType, path)
-		if result != nil {
-			return result
-		}
-	}
 	return nil
 }
 
@@ -111,9 +101,3 @@ func (g *Validate) validateList(refListAny, reqValue any, path string) error {
 	return nil
 }
 
-func (g *Validate) constructPath(parent, field string) string {
-	if parent == "" {
-		return field
-	}
-	return fmt.Sprintf("%s.%s", parent, field)
-}

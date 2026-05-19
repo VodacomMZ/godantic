@@ -32,6 +32,17 @@ func buildRefData(v any) map[string]any {
 		case fieldType == reflect.TypeOf(Object{}):
 			result[fieldName] = Object{}
 
+		// time.Time serialises to a JSON string — represent it as "" in the schema
+		// so that CheckTypeCompatibility does not recurse into time's unexported fields.
+		case fieldType == TimeType:
+			result[fieldName] = ""
+
+		case fieldType.Kind() == reflect.Ptr && fieldType.Elem() == TimeType:
+			result[fieldName] = ""
+
+		case fieldType.Kind() == reflect.Ptr && fieldType.Elem().Kind() == reflect.Struct:
+			result[fieldName] = buildRefData(reflect.New(fieldType.Elem()).Interface())
+
 		case fieldType.Kind() == reflect.Struct:
 			result[fieldName] = buildRefData(fieldVal.Interface())
 
@@ -46,7 +57,6 @@ func buildRefData(v any) map[string]any {
 			result[fieldName] = map[string]any{}
 
 		default:
-			// Tipos primitivos ou interface{}
 			result[fieldName] = reflect.Zero(fieldType).Interface()
 		}
 	}
