@@ -1,6 +1,6 @@
 site_name: Godantic
-site_url: https://godantic.github.io
-repo_url: https://github.com/grahms/godantic
+site_url: https://vodacommz.github.io/godantic/
+repo_url: https://github.com/VodacomMZ/godantic
 theme:
   name: material
   features:
