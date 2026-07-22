@@ -1,10 +1,10 @@
 # Godantic
-[![Go Report Card](https://goreportcard.com/badge/github.com/grahms/godantic)](https://goreportcard.com/report/github.com/grahms/godantic)
-[![Go Reference](https://pkg.go.dev/badge/github.com/grahms/godantic.svg)](https://pkg.go.dev/github.com/grahms/godantic)
+[![Go Report Card](https://goreportcard.com/badge/github.com/VodacomMZ/godantic)](https://goreportcard.com/report/github.com/VodacomMZ/godantic)
+[![Go Reference](https://pkg.go.dev/badge/github.com/VodacomMZ/godantic.svg)](https://pkg.go.dev/github.com/VodacomMZ/godantic)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Tests](https://github.com/grahms/godantic/actions/workflows/tests.yml/badge.svg)](https://github.com/grahms/godantic/actions/workflows/tests.yml)
+[![Tests](https://github.com/VodacomMZ/godantic/actions/workflows/tests.yml/badge.svg)](https://github.com/VodacomMZ/godantic/actions/workflows/tests.yml)
 [![Code Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen.svg)](#) <!-- substitui com real se tiver cobertura -->
-[![Issues](https://img.shields.io/github/issues/grahms/godantic)](https://github.com/grahms/godantic/issues)
+[![Issues](https://img.shields.io/github/issues/VodacomMZ/godantic)](https://github.com/VodacomMZ/godantic/issues)
 
 Godantic is a Go package for inspecting and validating JSON-like data against Go struct types and schemas. It provides functionalities for checking type compatibility, structure compatibility, and other validations such as empty string, invalid time, minimum length list checks, regex pattern matching, and format validation.
 
@@ -13,13 +13,13 @@ Godantic is a Go package for inspecting and validating JSON-like data against Go
 Install the godantic package:
 
 ```sh
-go get github.com/grahms/godantic
+go get github.com/VodacomMZ/godantic
 ```
 
 Then import it in your Go code:
 
 ```go
-import "github.com/grahms/godantic"
+import "github.com/VodacomMZ/godantic"
 ```
 
 ## Simple Usage
@@ -199,7 +199,7 @@ package main
 
 import (
     "github.com/gin-gonic/gin"
-    "github.com/grahms/godantic"
+    "github.com/VodacomMZ/godantic"
     "net/http"
 )
 
@@ -310,7 +310,7 @@ package main
 
 import (
     "fmt"
-    "github.com/grahms/godantic"
+    "github.com/VodacomMZ/godantic"
 )
 
 type User struct {

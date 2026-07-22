@@ -3,13 +3,13 @@
 ## Installation
 
 ```sh
-go get github.com/grahms/godantic
+go get github.com/VodacomMZ/godantic
 ```
 
 ## Basic Usage
 
 ```go
-import "github.com/grahms/godantic"
+import "github.com/VodacomMZ/godantic"
 
 var v godantic.Validate
 err := v.BindJSON(jsonData, &myStruct)

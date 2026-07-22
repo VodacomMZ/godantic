@@ -1,4 +1,4 @@
-module github.com/grahms/godantic
+module github.com/VodacomMZ/godantic
 
 go 1.18
 
