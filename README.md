@@ -775,9 +775,9 @@ type MyDynamicField struct {
 	Attribute string      `json:"attribute"`
 }
 
-func (mdf MyDynamicField) GetValue() any        { return mdf.Value }
-func (mdf MyDynamicField) GetValueType() string { return mdf.ValueType }
-func (mdf MyDynamicField) GetAttribute() string { return mdf.Attribute }
+func (d MyDynamicField) GetValue() any        { return d.Value }
+func (d MyDynamicField) GetValueType() string { return d.ValueType }
+func (d MyDynamicField) GetAttribute() string { return d.Attribute }
 ```
 
 ```go

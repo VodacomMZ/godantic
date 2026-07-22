@@ -11,16 +11,16 @@ type MyDynamicField struct {
 	Attribute string `json:"attribute"`
 }
 
-func (mdf MyDynamicField) GetValue() interface{} {
-	return mdf.Value
+func (d MyDynamicField) GetValue() interface{} {
+	return d.Value
 }
 
-func (mdf MyDynamicField) GetValueType() string {
-	return mdf.ValueType
+func (d MyDynamicField) GetValueType() string {
+	return d.ValueType
 }
 
-func (mdf MyDynamicField) GetAttribute() string {
-	return mdf.Attribute
+func (d MyDynamicField) GetAttribute() string {
+	return d.Attribute
 }
 
 func TestDynamicField(t *testing.T) {
